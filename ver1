@@ -1,0 +1,70 @@
+#include "HX711.h" //This library needs to be added separately
+#include "math.h"
+#define calibration_factor -7050 // This value is hardware dependent 
+#define LOADCELL_DOUT 3
+#define LOADCELL_SCK 2
+unsigned long T1 = millis();
+unsigned long 2;
+unsigned long L1 = millis();
+unsigned long L2;
+unsigned long R1 = millis();
+int kg = 0;
+int kg2 = 0;
+int diff = 0;
+HX711 scale;
+
+void setup()
+{
+  Serial.begin(9600);
+  
+  // The loadcell has already been calibrated, the calibration values change depending on the orientation and ghardware used
+
+  scale.begin(LOADCELL_DOUT,LOADCELL_SCK);
+  scale.set_scale(calibration_factor);
+  scale.tare();  //This will reset the value to zero
+  pinMode(8,INPUT);
+  pinMode(11,OUTPUT);
+}
+
+void loop()
+{
+ L2 = millis();
+ T2 = millis();
+
+ // Below code is for load sensor
+
+ if(T2-T1>=600000 && T2-T1<1200000)
+ {
+  Serial.print("Reading");
+  int a = scale.getunits();
+  kg = a*0.45; // The value of a was in lbs. This changes it into kg
+  diff = abs(kg2-kg);
+  kg2=kg;
+  T1=T2;
+  if(diff>1)
+   push_msg(); // This will call the function which sends the message
+ }
+ /* The load sensor part is over, now we begin with
+    liquid sensor*/
+ if(L2-L1>=172800000 && L2-L1<=3448000000)
+ {
+  if (digitalRead(8)==HIGH) // Here HIGH implies no water
+   {
+    digitalWrite(11,HIGH);  // This turns on the relay
+    R2=millis();
+    if(R2-R1>=60000)
+    { 
+      digitalWrite(11,LOW) //This turns off the relay
+      R1=R2;
+    }
+   }
+  } // This marks the end for liquid sensor
+
+ // Here we create another millis function to check and report hourly data
+}
+
+/* void push_msg()
+{
+  function to send the load sensor value
+}
+*/  
